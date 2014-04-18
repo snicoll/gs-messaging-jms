@@ -11,7 +11,8 @@ This guide walks you through the process of publishing and subscribing to messag
 
 == What you'll build
 
-You'll build an application that uses Spring's `JmsTemplate` to post a single message and subscribes to it with a POJO using `MessageListenerAdapter`.
+You'll build an application that uses Spring's `JmsTemplate` to post a single message and subscribes
+to it with a POJO annotated with `@JmsListener`.
 
 == What you'll need
 
@@ -40,7 +41,9 @@ include::https://raw.github.com/spring-guides/getting-started-macros/master/spri
 
 [[initial]]
 == Create a message receiver
-Spring provides the means to publish messages to any POJO.
+Spring provides the means to publish messages to any POJO. As from Spring 4.1, any method
+of a Spring-managed bean can be annotated with `@JmsListener` to create a message container
+automatically.
 
 `src/main/java/hello/Receiver.java`
 [source,java]
@@ -48,7 +51,10 @@ Spring provides the means to publish messages to any POJO.
 include::complete/src/main/java/hello/Receiver.java[]
 ----
 
-This is also known as a **message driven POJO**. As you can see in the code above, there is no need to implement any particular interface or for the method to have any particular name.
+This is also known as a **message driven POJO**. As you can see in the code above, there
+is no need to implement any particular interface or for the method to have any particular
+name. The `@JmsListener` annotation specifies the destination and that the message should
+be received in a publish/subscribe fashion.
 
 == Send and receive JMS messages with Spring
 Next, wire up a sender and a receiver.
@@ -59,15 +65,30 @@ Next, wire up a sender and a receiver.
 include::complete/src/main/java/hello/Application.java[]
 ----
 
-To wrap the `Receiver` you coded earlier, use `MessageListenerAdapter`. Then use the `setDefaultListenerMethod` to configure which method to invoke when a message comes in. Thus you avoid implementing any JMS or broker-specific interfaces.
+`@EnableJms` enables detection of `@JmsListener` annotations on any Spring-managed bean
+in the container. To create the message listener container responsible to serve incoming
+messages asynchronously, we need to provide a `JmsListenerContainerFactory` that is
+configured with the `connectionFactory` to use.
 
-The `SimpleMessageListenerContainer` class is an asynchronous message receiver. It uses the `MessageListenerAdapter` and the `ConnectionFactory` and is fired up when the application context starts. Another parameter is the queue name set in `mailboxDestination`. It is also set up to receive messages in a publish/subscribe fashion.
+Each `@JmsListener` annotated element requires to define the `JmsListenerContainerFactory`
+to use. It is also possible to omit that attribute (as in our receiver) by specifying the
+_default_ container factory to use. We do that by implementing `JmsListenerConfigurer`
+and specifying the default in the `configureJmsListeners` implementation method.
 
-Spring provides a convenient template class called `JmsTemplate`. `JmsTemplate` makes it very simple to send messages to a JMS message queue. In the `main` runner method, after starting things up, you create a `MessageCreator` and use it from `jmsTemplate` to send a message.
+Spring provides a convenient template class called `JmsTemplate`. `JmsTemplate` makes it
+very simple to send messages to a JMS message queue. In the `main` runner method, after
+starting things up, you create a `MessageCreator` and use it from `jmsTemplate` to send
+a message.
 
-Two beans that you don't see defined are `JmsTemplate` and `ActiveMQConnectionFactory`. These are created automatically by Spring Boot. In this case, the ActiveMQ broker runs embedded.
+Two beans that you don't see defined are `JmsTemplate` and `ActiveMQConnectionFactory`.
+These are created automatically by Spring Boot. In this case, the ActiveMQ broker runs
+embedded.
 
-NOTE: Spring's `JmsTemplate` can receive messages directly through its `receive` method, but that only works synchronously, meaning it will block. That's why Spring recommends that you use a listener container such as `SimpleMessageListenerContainer` with a cache-based connection factory, so you can consume messages asynchronously and with maximum connection efficiency.
+NOTE: Spring's `JmsTemplate` can receive messages directly through its `receive` method,
+but that only works synchronously, meaning it will block. That's why Spring recommends
+that you use a listener container such as `SimpleMessageListenerContainer` with a
+cache-based connection factory, so you can consume messages asynchronously and with
+maximum connection efficiency.
 
 
 include::https://raw.github.com/spring-guides/getting-started-macros/master/build_an_executable_jar_subhead.adoc[]
